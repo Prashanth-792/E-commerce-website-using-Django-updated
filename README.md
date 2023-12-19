@@ -1,1 +1,1 @@
-# Django_Visualization_Dashboard
+# E-commerce website using Django
