@@ -1,0 +1,150 @@
+{% extends 'store/main.html' %}
+{% load static %}
+{% block content %}
+     <div class="row">
+          <div class="col-lg-6">
+               <div class="box-element" id="form-wrapper">
+                    <form id="form">
+                         {% csrf_token %}
+                         <div id="user-info">
+                              <div class="form-field">
+                                   <input type="text" class="form-control" name="name" placeholder="Name" required>
+                              </div>
+                              <div class="form-field">
+                                   <input type="email" class="form-control" name="email" placeholder="email" required>
+                              </div>
+
+                         </div>
+                         <div id="shipping-info">
+                              <hr>
+                              <p>shipping details:</p>
+                              <hr>
+                              <div class="form-field">
+                                   <input type="text" class="form-control" name="address" placeholder="address" required>
+                              </div>
+                              <div class="form-field">
+                                   <input type="text" class="form-control" name="city" placeholder="city" required>
+                              </div>
+                              <div class="form-field">
+                                   <input type="text" class="form-control" name="state" placeholder="state" required>
+                              </div>
+                              <div class="form-field">
+                                   <input type="text" class="form-control" name="zipcode" placeholder="zip code" required>
+                              </div>
+                              <div class="form-field">
+                                   <input type="country" class="form-control" name="country" placeholder="country" required>
+                              </div>     
+     
+                         </div>
+                         <hr>
+                         <input type="submit" id="form-button" class="btn btn-success btn-block" value="Continue">
+                    </form>
+
+               </div>
+               <br>
+			<div class="box-element hidden" id="payment-info">
+				<small>Paypal Options</small>
+                    <button id="make-payment">Make payment</button>
+			</div>
+          </div>
+          <div class="col-lg-6">
+               <div class="box-element">
+                    <a class="btn btn-outline-dark" href="{% url 'cart' %}">&#x2190; Back to cart</a>
+                    <hr>
+                    <h3>Order summery</h3>
+                    {% for item in items %}
+                    <div class="cart-row">
+                         <div style="flex: 2;"><img class="row-image" src="{{item.product.imageURL}}" alt=""></div>
+                         <div style="flex: 2;"><p>{{item.product.name}}</p></div>
+                         <div style="flex: 1;"><p>{{item.product.price|floatformat:2}}</p></div>
+                         <div style="flex: 1;"><p>{{item.quantity}}</p></div>
+                    </div>
+                    {% endfor %}
+                    <h5>Items: {{order.get_cart_items}}</h5>
+               <h5>Total: ${{order.get_cart_total|floatformat:2}}</h5>
+               </div>
+
+          </div>
+     </div>
+     <script type="text/javascript">
+          var shipping = '{{order.shipping}}'
+          var total = '{{order.get_cart_total}}'
+
+          if(shipping == 'False'){
+               document.getElementById('shipping-info').innerHTML=''
+          }
+          if(user != 'AnonymousUser'){
+               document.getElementById('user-info').innerHTML=''
+          }
+          if (user != 'AnonymousUser' && shipping == 'False'){
+               // #hide entire form if user is logged in and shipping is false
+               document.getElementById('form-wrapper').classList.add("hidden");
+               // show payment if logged in user wants to but an item that does not require shipping
+               document.getElementById('payment-info').classList.remove("hidden");
+          }
+          
+          var form = document.getElementById('form')
+          csrftoken = form.getElementsByTagName("input")[0].value
+          console.log('Newtoken : ',form.getElementsByTagName("input")[0].value)
+
+
+
+          form.addEventListener('submit', function(e){
+               e.preventDefault()
+               console.log('form submitted...')
+               document.getElementById('form-button').classList.add("hidden");
+               document.getElementById('payment-info').classList.remove("hidden");
+          })
+
+          document.getElementById('make-payment').addEventListener('click',function(e){
+               submitFormData()
+          })
+
+          function submitFormData(){
+               console.log('payment button is clicked')
+
+               var userFormData = {
+                    'name' : null,
+                    'email' : null,
+                    'total' : total,
+               }
+               var shippingInfo = {
+                    // In form field we have manually created the names.
+                    'address' : null,
+                    'city': null,
+                    'state' : null,
+                    'zipcode': null,
+               }
+
+               if (shipping != 'False'){
+                    shippingInfo.address = form.address.value
+                    shippingInfo.city = form.city.value
+                    shippingInfo.state = form.state.value
+                    shippingInfo.zipcode = form.zipcode.value
+               }
+
+               if(user == 'AnonymouseUser'){
+                    userFormData.name = form.name.value
+                    userFormData.email = form.email.value
+               }
+               var url = '/process_order/'
+               fetch(url,{
+                    method:'POST',
+                    headers:{
+                         'Content-Type':'application/json',
+                         'X-CSRFToken':csrftoken,
+                    },
+                    body:JSON.stringify({'form':userFormData,'shipping':shippingInfo})
+               })
+               .then((response)=>response.json())
+               .then((data) => { 
+                    console.log('success:',data);
+                    alert('Transaction completed');
+                    cart={}
+                    document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
+                    window.location.href = "{% url 'store' %}"
+               })
+          }    
+     </script>
+{% endblock content %}
+
